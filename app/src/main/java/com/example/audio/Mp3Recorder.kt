@@ -112,15 +112,16 @@ class Mp3Recorder(
     fun stop() {
         if (!accepting) return
         accepting = false
-        val thread = worker
-        if (thread != null && thread.isAlive) {
-            try {
-                queue.put(stopChunk)
-                thread.join(10_000)
-            } catch (e: InterruptedException) {
-                Thread.currentThread().interrupt()
-            }
+        // Enqueue after all pending PCM. If the bounded queue is momentarily full,
+        // a tiny control thread waits rather than blocking the UI or audio callback.
+        if (!queue.offer(stopChunk)) {
+            Thread({
+                try {
+                    queue.put(stopChunk)
+                } catch (e: InterruptedException) {
+                    Thread.currentThread().interrupt()
+                }
+            }, "GuitarFxMp3Stop").start()
         }
-        worker = null
     }
 }
