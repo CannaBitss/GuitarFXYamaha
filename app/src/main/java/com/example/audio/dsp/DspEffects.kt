@@ -96,27 +96,38 @@ class BiquadFilter {
 }
 
 class NoiseGate(private val sampleRate: Float) {
-    var thresholdDb: Float = -50.0f
-    var releaseMs: Float = 40.0f
+    var thresholdDb: Float = -48.0f
+    var releaseMs: Float = 120.0f
+    var floorDb: Float = -18.0f
 
     private var envelope: Float = 0.0f
     private var gain: Float = 1.0f
 
     fun process(input: FloatArray, size: Int) {
-        val threshLinear = 10.0f.pow(thresholdDb / 20.0f)
-        val attackCoeff = 0.01f
-        val releaseCoeff = exp(-1.0f / (sampleRate * (releaseMs / 1000.0f)))
+        if (size <= 0) return
+        val openThreshold = 10.0f.pow(thresholdDb.coerceIn(-80.0f, -20.0f) / 20.0f)
+        val closeThreshold = openThreshold * 0.65f
+        val floorGain = 10.0f.pow(floorDb.coerceIn(-36.0f, -6.0f) / 20.0f)
+        val attackCoeff = exp(-1.0f / (sampleRate * 0.004f))
+        val detectorRelease = exp(-1.0f / (sampleRate * 0.035f))
+        val gainAttack = exp(-1.0f / (sampleRate * 0.006f))
+        val gainRelease = exp(-1.0f / (sampleRate * (releaseMs.coerceIn(30.0f, 350.0f) / 1000.0f)))
+        var isOpen = gain > floorGain + 0.05f
 
         for (i in 0 until size) {
-            val absIn = abs(input[i])
-            if (absIn > envelope) {
-                envelope = envelope + attackCoeff * (absIn - envelope)
+            val level = abs(input[i])
+            envelope = if (level > envelope) {
+                attackCoeff * envelope + (1.0f - attackCoeff) * level
             } else {
-                envelope = envelope * releaseCoeff
+                detectorRelease * envelope + (1.0f - detectorRelease) * level
             }
 
-            val targetGain = if (envelope > threshLinear) 1.0f else 0.0f
-            gain = gain + 0.005f * (targetGain - gain)
+            if (isOpen && envelope < closeThreshold) isOpen = false
+            else if (!isOpen && envelope > openThreshold) isOpen = true
+
+            val target = if (isOpen) 1.0f else floorGain
+            val coeff = if (target > gain) gainAttack else gainRelease
+            gain = coeff * gain + (1.0f - coeff) * target
             input[i] *= gain
         }
     }

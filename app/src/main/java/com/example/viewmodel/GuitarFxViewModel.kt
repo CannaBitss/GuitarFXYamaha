@@ -45,7 +45,7 @@ class GuitarFxViewModel(application: Application) : AndroidViewModel(application
     private val _hardwareSpecs = MutableStateFlow<HardwareAudioSpecs?>(null)
     val hardwareSpecs = _hardwareSpecs.asStateFlow()
 
-    private val _masterVolume = MutableStateFlow(1.0f)
+    private val _masterVolume = MutableStateFlow(1.4f)
     val masterVolume = _masterVolume.asStateFlow()
 
     private val _isMuted = MutableStateFlow(false)
@@ -61,7 +61,7 @@ class GuitarFxViewModel(application: Application) : AndroidViewModel(application
     private val _irigInputGain = MutableStateFlow(1.4f)
     val irigInputGain = _irigInputGain.asStateFlow()
 
-    private val _irigAntiFeedback = MutableStateFlow(true)
+    private val _irigAntiFeedback = MutableStateFlow(false)
     val irigAntiFeedback = _irigAntiFeedback.asStateFlow()
 
     private val _irigHumReduction = MutableStateFlow(true)

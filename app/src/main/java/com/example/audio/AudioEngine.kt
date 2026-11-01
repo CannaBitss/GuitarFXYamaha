@@ -45,10 +45,11 @@ class AudioEngine(private val context: Context) {
 
     var isTunerActive: Boolean = false
     var isMuted: Boolean = false
-    var masterVolume: Float = 1.0f
+    var masterVolume: Float = 1.4f
 
     // DSP Effects
     private val sampleRate = 48000f
+    private val outputLimiter = PeakLimiter(sampleRate)
     private val noiseGate = NoiseGate(sampleRate)
     private val overdrive = OverdriveDsp(sampleRate)
     private val distortion = DistortionDsp(sampleRate)
@@ -176,7 +177,9 @@ class AudioEngine(private val context: Context) {
         isRunningFlag.set(true)
 
         val specs = deviceInfoHelper.getHardwareSpecs()
-        val optimalSampleRate = specs.optimalSampleRate
+        // All DSP coefficients and delay buffers are initialized at 48 kHz.
+        // Keep capture/playback at the same rate to avoid pitch and filter mismatch.
+        val optimalSampleRate = sampleRate.toInt()
         val burstSize = specs.framesPerBuffer.coerceIn(64, 512)
 
         audioThread = Thread({
@@ -201,11 +204,17 @@ class AudioEngine(private val context: Context) {
                     )
                     val inBufSize = if (minInBuf > 0) max(minInBuf, burstSize * 4) else burstSize * 4
 
-                    val audioSources = intArrayOf(
-                        MediaRecorder.AudioSource.VOICE_RECOGNITION,
-                        MediaRecorder.AudioSource.MIC,
-                        MediaRecorder.AudioSource.DEFAULT
-                    )
+                    val audioSources = buildList {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            add(MediaRecorder.AudioSource.VOICE_PERFORMANCE)
+                        }
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                            add(MediaRecorder.AudioSource.UNPROCESSED)
+                        }
+                        add(MediaRecorder.AudioSource.VOICE_RECOGNITION)
+                        add(MediaRecorder.AudioSource.MIC)
+                        add(MediaRecorder.AudioSource.DEFAULT)
+                    }.distinct().toIntArray()
 
                     for (source in audioSources) {
                         try {
@@ -391,22 +400,15 @@ class AudioEngine(private val context: Context) {
                         }
                     }
 
-                    // Apply master volume & mute
-                    val effVol = if (isMuted) 0.0f else masterVolume
+                    // Apply output gain, then a smooth -1 dBFS peak limiter.
+                    val effVol = if (isMuted) 0.0f else masterVolume.coerceIn(0.0f, 2.5f)
                     var outRms = 0.0f
                     var clipping = false
 
                     for (i in 0 until readSamples) {
-                        var outVal = floatBuf[i] * effVol
-                        if (outVal.isNaN() || outVal.isInfinite()) {
-                            outVal = 0.0f
-                        } else if (outVal > 1.0f) {
-                            outVal = 1.0f
-                            clipping = true
-                        } else if (outVal < -1.0f) {
-                            outVal = -1.0f
-                            clipping = true
-                        }
+                        val amplified = floatBuf[i] * effVol
+                        if (amplified.isFinite() && kotlin.math.abs(amplified) > 0.89125f) clipping = true
+                        val outVal = outputLimiter.process(amplified)
                         shortIn[i] = (outVal * 32767.0f).toInt().toShort()
                         outRms += outVal * outVal
                     }
