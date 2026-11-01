@@ -399,6 +399,73 @@ fun StompboxKnobs(
             }
         }
 
+        EffectType.FLANGER -> {
+            val rate = params["rate"] ?: 0.35f
+            val depth = params["depth"] ?: 0.7f
+            val mix = params["mix"] ?: 0.35f
+            val feedback = params["feedback"] ?: 0.2f
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                RotaryKnob(
+                    label = "RATE",
+                    value = (rate - 0.05f) / 4.95f,
+                    onValueChange = { onParamChange("rate", 0.05f + it * 4.95f) },
+                    valueDisplay = String.format("%.2fHz", rate),
+                    indicatorColor = theme.knobIndicator
+                )
+                RotaryKnob(
+                    label = "DEPTH",
+                    value = depth,
+                    onValueChange = { onParamChange("depth", it) },
+                    indicatorColor = theme.knobIndicator
+                )
+                RotaryKnob(
+                    label = "MIX",
+                    value = mix,
+                    onValueChange = { onParamChange("mix", it) },
+                    indicatorColor = theme.knobIndicator
+                )
+                RotaryKnob(
+                    label = "FEEDBACK",
+                    value = feedback / 0.75f,
+                    onValueChange = { onParamChange("feedback", it * 0.75f) },
+                    indicatorColor = theme.knobIndicator
+                )
+            }
+        }
+
+        EffectType.WAH -> {
+            val position = params["position"] ?: 0.5f
+            val q = params["q"] ?: 3.5f
+            val mix = params["mix"] ?: 1.0f
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                RotaryKnob(
+                    label = "PEDAL",
+                    value = position,
+                    onValueChange = { onParamChange("position", it) },
+                    valueDisplay = "${(350f * Math.pow(6.0, position.toDouble())).toInt()}Hz",
+                    indicatorColor = theme.knobIndicator
+                )
+                RotaryKnob(
+                    label = "RESONANCE",
+                    value = (q - 0.7f) / 9.3f,
+                    onValueChange = { onParamChange("q", 0.7f + it * 9.3f) },
+                    indicatorColor = theme.knobIndicator
+                )
+                RotaryKnob(
+                    label = "MIX",
+                    value = mix,
+                    onValueChange = { onParamChange("mix", it) },
+                    indicatorColor = theme.knobIndicator
+                )
+            }
+        }
+
         EffectType.DELAY -> {
             val time = params["time"] ?: 350.0f
             val feedback = params["feedback"] ?: 0.4f
