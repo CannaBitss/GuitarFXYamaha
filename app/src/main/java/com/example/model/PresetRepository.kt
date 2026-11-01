@@ -81,7 +81,8 @@ object PresetRepository {
         // Keep the new modulation pedals available in every factory preset without
         // changing the original tone until the user switches them on.
         preset.copy(
-            effects = preset.effects + listOf(
+            // Put new pedals first so they are visible without horizontal scrolling.
+            effects = listOf(
                 EffectSetting(
                     "fx_flanger",
                     EffectType.FLANGER,
@@ -94,7 +95,7 @@ object PresetRepository {
                     false,
                     mapOf("position" to 0.5f, "q" to 3.5f, "mix" to 1.0f)
                 )
-            )
+            ) + preset.effects.filterNot { it.type == EffectType.FLANGER || it.type == EffectType.WAH }
         )
     }
 
