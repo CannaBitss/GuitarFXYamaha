@@ -428,7 +428,7 @@ fun PedalboardScreen(
                         value = masterVolume,
                         onValueChange = { viewModel.setMasterVolume(it) },
                         valueRange = 0.5f..2.5f,
-                        modifier = Modifier.height(24.dp),
+                        modifier = Modifier.height(40.dp),
                         colors = SliderDefaults.colors(
                             thumbColor = Color(0xFFFFB300),
                             activeTrackColor = Color(0xFFFFB300)
