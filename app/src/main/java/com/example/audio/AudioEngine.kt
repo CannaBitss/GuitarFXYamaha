@@ -116,8 +116,8 @@ class AudioEngine(private val context: Context) {
             val p = fx.params
             when (fx.type) {
                 EffectType.NOISE_GATE -> {
-                    noiseGate.thresholdDb = p["threshold"] ?: -50.0f
-                    noiseGate.releaseMs = p["release"] ?: 40.0f
+                    noiseGate.thresholdDb = p["threshold"] ?: -48.0f
+                    noiseGate.releaseMs = p["release"] ?: 120.0f
                 }
                 EffectType.OVERDRIVE -> {
                     overdrive.drive = p["drive"] ?: 0.5f
@@ -335,6 +335,7 @@ class AudioEngine(private val context: Context) {
                     statusMessage = if (recorder != null) "DSP Active ($activeDevice)" else "DSP Active (Virtual Riff Only)"
                 )
 
+                outputLimiter.reset()
                 while (isRunningFlag.get()) {
                     var readSamples = 0
                     if (recorder != null && recorder.recordingState == AudioRecord.RECORDSTATE_RECORDING) {
