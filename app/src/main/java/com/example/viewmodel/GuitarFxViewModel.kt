@@ -126,6 +126,29 @@ class GuitarFxViewModel(application: Application) : AndroidViewModel(application
         audioEngine.irigConditioner.humReductionEnabled = next
     }
 
+    private fun withNewModulationPedals(preset: GuitarPreset): GuitarPreset {
+        val present = preset.effects.map { it.type }.toSet()
+        val additions = buildList {
+            if (EffectType.FLANGER !in present) add(
+                EffectSetting(
+                    "fx_flanger",
+                    EffectType.FLANGER,
+                    false,
+                    mapOf("rate" to 0.35f, "depth" to 0.7f, "mix" to 0.35f, "feedback" to 0.2f)
+                )
+            )
+            if (EffectType.WAH !in present) add(
+                EffectSetting(
+                    "fx_wah",
+                    EffectType.WAH,
+                    false,
+                    mapOf("position" to 0.5f, "q" to 3.5f, "mix" to 1.0f)
+                )
+            )
+        }
+        return preset.copy(effects = additions + preset.effects)
+    }
+
     private fun loadPresets() {
         val list = mutableListOf<GuitarPreset>()
         list.addAll(PresetRepository.factoryPresets)
@@ -134,16 +157,18 @@ class GuitarFxViewModel(application: Application) : AndroidViewModel(application
         for (id in customKeys) {
             val json = prefs.getString("preset_$id", null)
             if (json != null) {
-                PresetRepository.jsonToPreset(json)?.let { list.add(it) }
+                PresetRepository.jsonToPreset(json)?.let { list.add(withNewModulationPedals(it)) }
             }
         }
         _presetsList.value = list
     }
 
     fun selectPreset(preset: GuitarPreset) {
-        _currentPreset.value = preset
-        _effectsChain.value = preset.effects
-        audioEngine.updatePreset(preset)
+        // Migrate previously saved user presets so the new pedals are always available.
+        val updatedPreset = withNewModulationPedals(preset)
+        _currentPreset.value = updatedPreset
+        _effectsChain.value = updatedPreset.effects
+        audioEngine.updatePreset(updatedPreset)
     }
 
     fun saveCurrentAsNewPreset(name: String, description: String) {
