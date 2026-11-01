@@ -27,6 +27,27 @@ class ExampleUnitTest {
   }
 
   @Test
+  fun testOutputLimiterKeepsSamplesBelowCeiling() {
+    val limiter = com.example.audio.dsp.PeakLimiter(48000f)
+    val output = FloatArray(256) { if (it < 64) 0.2f else 2.0f }
+      .map { limiter.process(it) }
+    assertTrue("Limiter output must remain below -1 dBFS ceiling",
+      output.all { it.isFinite() && kotlin.math.abs(it) <= 0.8913f })
+  }
+
+  @Test
+  fun testNoiseGateAttenuatesSilenceAndOpensForGuitarSignal() {
+    val gate = com.example.audio.dsp.NoiseGate(48000f)
+    val silence = FloatArray(24000) { 0.0001f }
+    gate.process(silence, silence.size)
+    assertTrue("Noise floor should be attenuated", kotlin.math.abs(silence.last()) < 0.00003f)
+
+    val guitarSignal = FloatArray(24000) { 0.25f }
+    gate.process(guitarSignal, guitarSignal.size)
+    assertTrue("Gate should open for a guitar signal", guitarSignal.last() > 0.20f)
+  }
+
+  @Test
   fun testYinPitchDetection() {
     val sampleRate = 48000f
     val yin = PitchDetectorYin(sampleRate, 2048)
