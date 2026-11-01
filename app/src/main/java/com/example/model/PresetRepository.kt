@@ -77,7 +77,26 @@ object PresetRepository {
                 EffectSetting("fx_reverb", EffectType.REVERB, true, mapOf("type" to 2f, "decay" to 5.0f, "mix" to 0.60f, "damping" to 0.2f))
             )
         )
-    )
+    ).map { preset ->
+        // Keep the new modulation pedals available in every factory preset without
+        // changing the original tone until the user switches them on.
+        preset.copy(
+            effects = preset.effects + listOf(
+                EffectSetting(
+                    "fx_flanger",
+                    EffectType.FLANGER,
+                    false,
+                    mapOf("rate" to 0.35f, "depth" to 0.7f, "mix" to 0.35f, "feedback" to 0.2f)
+                ),
+                EffectSetting(
+                    "fx_wah",
+                    EffectType.WAH,
+                    false,
+                    mapOf("position" to 0.5f, "q" to 3.5f, "mix" to 1.0f)
+                )
+            )
+        )
+    }
 
     fun createDefaultChain(): List<EffectSetting> {
         return factoryPresets[0].effects
