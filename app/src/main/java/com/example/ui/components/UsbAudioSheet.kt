@@ -146,7 +146,7 @@ fun UsbAudioBottomSheet(
                                 fontWeight = FontWeight.Medium
                             )
                             Text(
-                                text = String.format("%.1fx (+%.1fdB)", irigGain, (irigGain - 1f) * 6f),
+                                text = String.format("%.1fx (%+.1fdB)", irigGain, 20.0 * kotlin.math.log10(irigGain.toDouble())),
                                 fontSize = 11.sp,
                                 color = Color(0xFFFFD54F),
                                 fontWeight = FontWeight.Bold
