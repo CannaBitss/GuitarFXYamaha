@@ -319,66 +319,6 @@ fun PedalboardScreen(
                     }
                 }
 
-                // MP3 recorder captures the final processed guitar signal.
-                Surface(
-                    color = Color(0xFF171B22),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 14.dp, vertical = 6.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                "MP3 RECORDER",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF90A4AE),
-                                letterSpacing = 1.sp
-                            )
-                            Text(
-                                text = if (recordingState.isRecording) "Recording processed guitar audio..." else recordingState.message,
-                                fontSize = 10.sp,
-                                color = if (recordingState.isRecording) Color(0xFFFF5252) else Color.LightGray,
-                                maxLines = 2
-                            )
-                        }
-                        Button(
-                            onClick = {
-                                if (recordingState.isRecording) {
-                                    viewModel.stopMp3Recording()
-                                } else if (!hasAudioPermission) {
-                                    permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                                } else {
-                                    viewModel.startMp3Recording()
-                                }
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (recordingState.isRecording) Color(0xFFB71C1C) else Color(0xFF1B5E20),
-                                contentColor = Color.White
-                            ),
-                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                            modifier = Modifier.height(38.dp).testTag("mp3_record_button")
-                        ) {
-                            Icon(
-                                imageVector = if (recordingState.isRecording) Icons.Default.Stop else Icons.Default.FiberManualRecord,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                if (recordingState.isRecording) "STOP" else "REC MP3",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                }
-
                 // Oscilloscope & Signal Meters
                 Box(modifier = Modifier.padding(horizontal = 14.dp, vertical = 4.dp)) {
                     OscilloscopeView(
@@ -426,6 +366,56 @@ fun PedalboardScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
+                    // Persistent recorder controls: always visible above the master strip.
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "MP3 RECORDER",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF90A4AE),
+                                letterSpacing = 1.sp
+                            )
+                            Text(
+                                text = if (recordingState.isRecording) "Recording processed guitar..." else recordingState.message,
+                                fontSize = 9.sp,
+                                color = if (recordingState.isRecording) Color(0xFFFF5252) else Color.LightGray,
+                                maxLines = 1
+                            )
+                        }
+                        Button(
+                            onClick = {
+                                if (recordingState.isRecording) {
+                                    viewModel.stopMp3Recording()
+                                } else if (!hasAudioPermission) {
+                                    permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                } else {
+                                    viewModel.startMp3Recording()
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (recordingState.isRecording) Color(0xFFB71C1C) else Color(0xFF1B5E20),
+                                contentColor = Color.White
+                            ),
+                            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 5.dp),
+                            modifier = Modifier.height(36.dp).testTag("mp3_record_button")
+                        ) {
+                            Icon(
+                                imageVector = if (recordingState.isRecording) Icons.Default.Stop else Icons.Default.FiberManualRecord,
+                                contentDescription = null,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(if (recordingState.isRecording) "STOP" else "REC MP3", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
