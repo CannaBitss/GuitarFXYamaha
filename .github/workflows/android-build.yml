@@ -32,17 +32,19 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      # The setup action's default package list includes the obsolete "tools"
+      # SDK package, which sdkmanager no longer provides. Install only platform-tools.
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
 
       - name: Install Android SDK packages
         run: |
-          yes | sdkmanager --licenses
-          sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+          sdkmanager --install "platforms;android-36" "build-tools;36.0.0" "platform-tools"
 
-      # This repository currently contains gradle-wrapper.properties but does not
-      # contain gradlew / gradlew.bat or the wrapper JAR, so install the pinned
-      # Gradle version and invoke it directly.
+      # This repository currently has no complete Gradle Wrapper, so install
+      # the pinned Gradle version and invoke it directly.
       - name: Set up Gradle 9.3.1
         uses: gradle/actions/setup-gradle@v4
         with:
