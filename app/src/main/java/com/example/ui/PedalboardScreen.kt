@@ -365,6 +365,25 @@ fun PedalboardScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("MASTER OUTPUT", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF90A4AE))
+                        Text(String.format("%.2fx", masterVolume), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFFD54F))
+                    }
+                    Slider(
+                        value = masterVolume,
+                        onValueChange = { viewModel.setMasterVolume(it) },
+                        valueRange = 0.5f..2.5f,
+                        modifier = Modifier.height(24.dp),
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color(0xFFFFB300),
+                            activeTrackColor = Color(0xFFFFB300)
+                        )
+                    )
+
                     // Quick Preset Buttons Carousel
                     Row(
                         modifier = Modifier.fillMaxWidth(),

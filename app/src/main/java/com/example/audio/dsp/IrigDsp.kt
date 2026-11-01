@@ -16,7 +16,9 @@ class IrigConditioner(private val sampleRate: Float) {
 
     private val rumbleHpf = BiquadFilter()
     private val mainsHum50 = BiquadFilter()
+    private val mainsHum60 = BiquadFilter()
     private val mainsHum100 = BiquadFilter()
+    private val mainsHum120 = BiquadFilter()
     private val antiFeedbackNotch1 = BiquadFilter()
     private val antiFeedbackNotch2 = BiquadFilter()
     private val highCutSquealFilter = BiquadFilter()
@@ -25,8 +27,10 @@ class IrigConditioner(private val sampleRate: Float) {
         // High-pass filter at 75Hz to kill ground hum & handling thumps
         rumbleHpf.setHighPass(sampleRate, 55.0f, 0.707f)
         // Narrow 50 Hz mains notch and its first harmonic; avoids the broad 3-5 kHz cuts.
-        mainsHum50.setPeaking(sampleRate, 50.0f, -9.0f, 9.0f)
+        mainsHum50.setPeaking(sampleRate, 50.0f, -9.0f, 10.0f)
+        mainsHum60.setPeaking(sampleRate, 60.0f, -9.0f, 10.0f)
         mainsHum100.setPeaking(sampleRate, 100.0f, -6.0f, 8.0f)
+        mainsHum120.setPeaking(sampleRate, 120.0f, -6.0f, 8.0f)
 
         // Notch filters at 3200Hz and 4600Hz (typical TRRS capacitive crosstalk resonance peaks)
         antiFeedbackNotch1.setPeaking(sampleRate, 3200.0f, -12.0f, 2.5f)
@@ -45,7 +49,9 @@ class IrigConditioner(private val sampleRate: Float) {
             if (humReductionEnabled) {
                 sample = rumbleHpf.process(sample)
                 sample = mainsHum50.process(sample)
+                sample = mainsHum60.process(sample)
                 sample = mainsHum100.process(sample)
+                sample = mainsHum120.process(sample)
             }
 
             if (antiFeedbackEnabled) {

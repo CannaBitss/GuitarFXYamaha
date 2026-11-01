@@ -13,6 +13,8 @@ class PeakLimiter(
     var releaseMs: Float = 90.0f
 ) {
     private var gain = 1.0f
+    private var cachedReleaseMs = releaseMs
+    private var cachedReleaseCoeff = exp(-1.0f / (sampleRate * (releaseMs / 1000.0f)))
     private val safeCeiling get() = ceiling.coerceIn(0.1f, 0.98f)
 
     fun process(sample: Float): Float {
@@ -25,9 +27,12 @@ class PeakLimiter(
         gain = if (targetGain < gain) {
             targetGain
         } else {
-            val releaseSeconds = (releaseMs.coerceIn(10.0f, 500.0f) / 1000.0f)
-            val releaseCoeff = exp(-1.0f / (sampleRate * releaseSeconds))
-            releaseCoeff * gain + (1.0f - releaseCoeff) * targetGain
+            if (releaseMs != cachedReleaseMs) {
+                cachedReleaseMs = releaseMs
+                val releaseSeconds = releaseMs.coerceIn(10.0f, 500.0f) / 1000.0f
+                cachedReleaseCoeff = exp(-1.0f / (sampleRate * releaseSeconds))
+            }
+            cachedReleaseCoeff * gain + (1.0f - cachedReleaseCoeff) * targetGain
         }
 
         return (sample * gain).coerceIn(-safeCeiling, safeCeiling)
