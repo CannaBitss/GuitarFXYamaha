@@ -64,6 +64,40 @@ class ExampleUnitTest {
     }
   }
 
+
+  @Test
+  fun testFlangerProducesFiniteModulatedSignal() {
+    val flanger = com.example.audio.dsp.FlangerDsp(48000f)
+    val buffer = FloatArray(4096) { i ->
+      sin(2.0 * Math.PI * 440.0 * i / 48000.0).toFloat() * 0.4f
+    }
+    flanger.process(buffer, buffer.size)
+    assertTrue("Flanger output must remain finite", buffer.all { it.isFinite() })
+    assertTrue("Flanger must preserve audible signal", buffer.any { kotlin.math.abs(it) > 0.01f })
+  }
+
+  @Test
+  fun testWahRespondsToPedalPositionAndRemainsFinite() {
+    val wah = com.example.audio.dsp.WahDsp(48000f)
+    val input = FloatArray(4096) { i ->
+      (sin(2.0 * Math.PI * 400.0 * i / 48000.0) +
+        sin(2.0 * Math.PI * 1800.0 * i / 48000.0)).toFloat() * 0.2f
+    }
+    val lowPosition = input.copyOf()
+    val highPosition = input.copyOf()
+    wah.position = 0.05f
+    wah.process(lowPosition, lowPosition.size)
+    wah.reset()
+    wah.position = 0.95f
+    wah.process(highPosition, highPosition.size)
+
+    assertTrue("Wah output must remain finite", lowPosition.all { it.isFinite() } && highPosition.all { it.isFinite() })
+    assertTrue(
+      "Wah pedal position must change the filter response",
+      lowPosition.indices.any { kotlin.math.abs(lowPosition[it] - highPosition[it]) > 0.0001f }
+    )
+  }
+
   @Test
   fun testIrigConditionerProcessing() {
     val irig = com.example.audio.dsp.IrigConditioner(48000f)

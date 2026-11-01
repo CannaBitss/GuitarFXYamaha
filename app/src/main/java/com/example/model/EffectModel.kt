@@ -20,6 +20,7 @@ enum class EffectType(val displayName: String, val category: EffectCategory) {
     CAB_SIM("Cabinet IR", EffectCategory.CABINET),
     CHORUS("SPX Chorus", EffectCategory.MODULATION),
     FLANGER("Jet Flanger", EffectCategory.MODULATION),
+    WAH("Cry Baby Wah", EffectCategory.MODULATION),
     PHASER("Phase 90", EffectCategory.MODULATION),
     TREMOLO("Opto Tremolo", EffectCategory.MODULATION),
     ROTARY("Rotary Speaker", EffectCategory.MODULATION),
