@@ -1,9 +1,8 @@
 package com.example.ui.components
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,6 +14,9 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -25,7 +27,7 @@ import kotlin.math.sin
 @Composable
 fun RotaryKnob(
     label: String,
-    value: Float, // Normalized 0.0f to 1.0f
+    value: Float,
     onValueChange: (Float) -> Unit,
     modifier: Modifier = Modifier,
     size: Dp = 68.dp,
@@ -34,35 +36,49 @@ fun RotaryKnob(
     ringTrackColor: Color = Color(0xFF1E2024),
     valueDisplay: String = "${(value * 100).toInt()}%"
 ) {
-    var dragAccumulator by remember { mutableFloatStateOf(0f) }
+    // Keep pointer input alive during a drag while always reading the latest
+    // Compose value and callback. This prevents a stale-value/drag freeze bug.
+    val latestValue by rememberUpdatedState(value.coerceIn(0f, 1f))
+    val latestOnValueChange by rememberUpdatedState(onValueChange)
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
-            .width(size + 14.dp)
+            .width(size + 24.dp)
             .testTag("knob_$label")
     ) {
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .size(size)
+                // Larger hit target than the visible knob for easier finger control.
+                .size(size + 24.dp)
+                .semantics {
+                    progressBarRangeInfo = ProgressBarRangeInfo(
+                        current = value.coerceIn(0f, 1f),
+                        range = 0f..1f
+                    )
+                }
                 .pointerInput(Unit) {
-                    detectVerticalDragGestures(
-                        onVerticalDrag = { change, dragAmount ->
+                    detectDragGestures(
+                        onDrag = { change, dragAmount ->
                             change.consume()
-                            // Dragging upwards increases value, downwards decreases
-                            val delta = -dragAmount / 250f
-                            val newValue = (value + delta).coerceIn(0.0f, 1.0f)
-                            onValueChange(newValue)
+                            // Vertical or horizontal finger movement can turn the knob.
+                            // 160 px now spans the full range (was 250 px).
+                            val movement = if (kotlin.math.abs(dragAmount.y) >= kotlin.math.abs(dragAmount.x)) {
+                                -dragAmount.y
+                            } else {
+                                dragAmount.x
+                            }
+                            val next = (latestValue + movement / 160f).coerceIn(0f, 1f)
+                            latestOnValueChange(next)
                         }
                     )
                 }
         ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
+            Canvas(modifier = Modifier.size(size)) {
                 val center = Offset(this.size.width / 2f, this.size.height / 2f)
                 val radius = this.size.minDimension / 2f - 4.dp.toPx()
 
-                // Draw outer tick marks
                 val startAngle = 135f
                 val sweepTotal = 270f
                 val numTicks = 9
@@ -87,28 +103,25 @@ fun RotaryKnob(
                     )
                 }
 
-                // Background track arc
                 drawArc(
                     color = ringTrackColor,
-                    startAngle = 135f,
-                    sweepAngle = 270f,
+                    startAngle = startAngle,
+                    sweepAngle = sweepTotal,
                     useCenter = false,
                     style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round)
                 )
 
-                // Active level arc
                 drawArc(
                     brush = Brush.sweepGradient(
                         0.0f to Color(0xFFFFB74D),
                         1.0f to Color(0xFFFF7043)
                     ),
-                    startAngle = 135f,
-                    sweepAngle = 270f * value,
+                    startAngle = startAngle,
+                    sweepAngle = sweepTotal * value.coerceIn(0f, 1f),
                     useCenter = false,
                     style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round)
                 )
 
-                // Knob Body (metallic bevel shadow and highlight)
                 drawCircle(
                     brush = Brush.radialGradient(
                         colors = listOf(knobColor.copy(alpha = 0.9f), Color(0xFF141518)),
@@ -119,7 +132,6 @@ fun RotaryKnob(
                     center = center
                 )
 
-                // Knurled rim stroke
                 drawCircle(
                     color = Color(0xFF42464D),
                     radius = radius - 3.dp.toPx(),
@@ -127,8 +139,7 @@ fun RotaryKnob(
                     style = Stroke(width = 1.5.dp.toPx())
                 )
 
-                // Indicator pointer needle
-                val currentAngleDeg = 135f + 270f * value
+                val currentAngleDeg = startAngle + sweepTotal * value.coerceIn(0f, 1f)
                 val currentAngleRad = Math.toRadians(currentAngleDeg.toDouble())
                 val needleLen = radius - 8.dp.toPx()
                 val needleEnd = Offset(
@@ -148,7 +159,6 @@ fun RotaryKnob(
                     cap = StrokeCap.Round
                 )
 
-                // Center cap
                 drawCircle(
                     color = Color(0xFF181A1D),
                     radius = radius * 0.22f,
