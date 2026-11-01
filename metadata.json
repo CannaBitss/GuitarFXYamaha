@@ -1,0 +1,6 @@
+{
+  "name": "GuitarFX Pro",
+  "description": "Yamaha-inspired ultra low-latency guitar multi-effects processor, amp simulation, stompboxes, and real-time tuner",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
