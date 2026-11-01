@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 
 class GuitarFxViewModel(application: Application) : AndroidViewModel(application) {
     val audioEngine = AudioEngine(application)
+    val recordingState = audioEngine.recordingState
 
     private val prefs = application.getSharedPreferences("guitar_fx_presets", Context.MODE_PRIVATE)
 
@@ -83,6 +84,10 @@ class GuitarFxViewModel(application: Application) : AndroidViewModel(application
     fun stopEngine() {
         audioEngine.stop()
     }
+
+    fun startMp3Recording(): Boolean = audioEngine.startMp3Recording()
+
+    fun stopMp3Recording() = audioEngine.stopMp3Recording()
 
     fun toggleEnginePower() {
         if (audioEngine.engineStats.value.isRunning) {
