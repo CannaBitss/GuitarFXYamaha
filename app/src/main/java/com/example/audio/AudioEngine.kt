@@ -17,6 +17,12 @@ import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.abs
 import kotlin.math.max
 
+data class Mp3RecordingState(
+    val isRecording: Boolean = false,
+    val fileName: String = "",
+    val message: String = "Ready"
+)
+
 data class AudioEngineStats(
     val isRunning: Boolean = false,
     val sampleRate: Int = 48000,
@@ -43,6 +49,12 @@ class AudioEngine(private val context: Context) {
     private val _tunerResultFlow = MutableStateFlow<TunerResult?>(null)
     val tunerResultFlow = _tunerResultFlow.asStateFlow()
 
+    private val _recordingState = MutableStateFlow(Mp3RecordingState())
+    val recordingState = _recordingState.asStateFlow()
+
+    @Volatile
+    private var mp3Recorder: Mp3Recorder? = null
+
     var isTunerActive: Boolean = false
     var isMuted: Boolean = false
     var masterVolume: Float = 1.4f
@@ -58,6 +70,8 @@ class AudioEngine(private val context: Context) {
     private val ampSim = AmpSimulatorDsp(sampleRate)
     private val cabSim = CabinetSimulatorDsp(sampleRate)
     private val chorus = ChorusDsp(sampleRate)
+    private val flanger = FlangerDsp(sampleRate)
+    private val wah = WahDsp(sampleRate)
     private val delay = DelayDsp(sampleRate)
     private val revXReverb = YamahaRevXReverbDsp(sampleRate)
 
@@ -155,6 +169,17 @@ class AudioEngine(private val context: Context) {
                     chorus.depth = p["depth"] ?: 0.5f
                     chorus.mix = p["mix"] ?: 0.35f
                 }
+                EffectType.FLANGER -> {
+                    flanger.rateHz = p["rate"] ?: 0.35f
+                    flanger.depth = p["depth"] ?: 0.7f
+                    flanger.mix = p["mix"] ?: 0.35f
+                    flanger.feedback = p["feedback"] ?: 0.2f
+                }
+                EffectType.WAH -> {
+                    wah.position = p["position"] ?: 0.5f
+                    wah.q = p["q"] ?: 3.5f
+                    wah.mix = p["mix"] ?: 1.0f
+                }
                 EffectType.DELAY -> {
                     delay.delayTimeMs = p["time"] ?: 350.0f
                     delay.feedback = p["feedback"] ?: 0.4f
@@ -180,7 +205,9 @@ class AudioEngine(private val context: Context) {
         // All DSP coefficients and delay buffers are initialized at 48 kHz.
         // Keep capture/playback at the same rate to avoid pitch and filter mismatch.
         val optimalSampleRate = sampleRate.toInt()
-        val burstSize = specs.framesPerBuffer.coerceIn(64, 512)
+        // Smaller callback blocks reduce round-trip latency. Cap at 192 frames to
+        // avoid excessive CPU wakeups on devices reporting very large bursts.
+        val burstSize = specs.framesPerBuffer.coerceIn(64, 192)
 
         audioThread = Thread({
             try {
@@ -202,7 +229,7 @@ class AudioEngine(private val context: Context) {
                         AudioFormat.CHANNEL_IN_MONO,
                         AudioFormat.ENCODING_PCM_16BIT
                     )
-                    val inBufSize = if (minInBuf > 0) max(minInBuf, burstSize * 4) else burstSize * 4
+                    val inBufSize = if (minInBuf > 0) max(minInBuf, burstSize * 2) else burstSize * 2
 
                     val audioSources = buildList {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -243,7 +270,7 @@ class AudioEngine(private val context: Context) {
                     AudioFormat.CHANNEL_OUT_MONO,
                     AudioFormat.ENCODING_PCM_16BIT
                 )
-                val outBufSize = if (minOutBuf > 0) max(minOutBuf, burstSize * 4) else burstSize * 4
+                val outBufSize = if (minOutBuf > 0) max(minOutBuf, burstSize * 2) else burstSize * 2
 
                 val audioAttributes = AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_MEDIA)
@@ -277,6 +304,12 @@ class AudioEngine(private val context: Context) {
                 } catch (e: Exception) {
                     Log.e("AudioEngine", "AudioTrack creation failed", e)
                     null
+                }
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && track?.state == AudioTrack.STATE_INITIALIZED) {
+                    // Keep only two hardware bursts queued when the device permits it.
+                    val minimumFrames = if (minOutBuf > 0) minOutBuf / 2 else burstSize
+                    track.setBufferSizeInFrames(max(minimumFrames, burstSize * 2))
                 }
 
                 // Bind preferred device to 3.5mm Earphone Jack if iRig/Headset is plugged in
@@ -395,6 +428,8 @@ class AudioEngine(private val context: Context) {
                             EffectType.AMP_SIM -> ampSim.process(floatBuf, readSamples)
                             EffectType.CAB_SIM -> cabSim.process(floatBuf, readSamples)
                             EffectType.CHORUS -> chorus.process(floatBuf, readSamples)
+                            EffectType.FLANGER -> flanger.process(floatBuf, readSamples)
+                            EffectType.WAH -> wah.process(floatBuf, readSamples)
                             EffectType.DELAY -> delay.process(floatBuf, readSamples)
                             EffectType.REVERB -> revXReverb.process(floatBuf, readSamples)
                             else -> {}
@@ -414,6 +449,10 @@ class AudioEngine(private val context: Context) {
                         outRms += outVal * outVal
                     }
                     outRms = if (outRms.isNaN() || outRms <= 0f) 0f else kotlin.math.sqrt(outRms / readSamples)
+
+                    // Record the final post-effects, post-master, post-limiter signal.
+                    // MP3 encoding and disk writes happen on the recorder worker thread.
+                    mp3Recorder?.write(shortIn, readSamples)
 
                     // Write to audio output
                     if (track != null && track.playState == AudioTrack.PLAYSTATE_PLAYING) {
@@ -478,7 +517,65 @@ class AudioEngine(private val context: Context) {
         audioThread?.start()
     }
 
+    fun startMp3Recording(): Boolean {
+        if (!engineStats.value.isRunning) {
+            _recordingState.value = Mp3RecordingState(message = "Start the audio engine before recording")
+            return false
+        }
+        synchronized(this) {
+            if (_recordingState.value.isRecording) return true
+            return try {
+                val recorder = Mp3Recorder(
+                    context = context,
+                    inputSampleRate = sampleRate.toInt(),
+                    framesPerBuffer = 512,
+                    onFinished = { file ->
+                        _recordingState.value = Mp3RecordingState(
+                            isRecording = false,
+                            fileName = file.name,
+                            message = "Saved: ${file.absolutePath}"
+                        )
+                    },
+                    onError = { error ->
+                        _recordingState.value = Mp3RecordingState(
+                            isRecording = false,
+                            message = "MP3 error: ${error.message ?: "unknown error"}"
+                        )
+                    }
+                )
+                val file = recorder.start()
+                mp3Recorder = recorder
+                _recordingState.value = Mp3RecordingState(
+                    isRecording = true,
+                    fileName = file.name,
+                    message = "Recording MP3..."
+                )
+                true
+            } catch (e: Exception) {
+                Log.e("AudioEngine", "Unable to start MP3 recording", e)
+                _recordingState.value = Mp3RecordingState(
+                    message = "Cannot start MP3 recording: ${e.message}"
+                )
+                false
+            }
+        }
+    }
+
+    fun stopMp3Recording() {
+        val recorder = synchronized(this) {
+            val current = mp3Recorder
+            mp3Recorder = null
+            current
+        } ?: return
+        recorder.stop()
+        _recordingState.value = _recordingState.value.copy(
+            isRecording = false,
+            message = "Finalizing MP3..."
+        )
+    }
+
     fun stop() {
+        stopMp3Recording()
         isRunningFlag.set(false)
         try {
             audioThread?.interrupt()
