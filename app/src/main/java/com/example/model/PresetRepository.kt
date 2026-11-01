@@ -12,7 +12,7 @@ object PresetRepository {
             description = "Glassy chime with subtle chorus and lush REV-X hall reverb",
             isFactory = true,
             effects = listOf(
-                EffectSetting("fx_ng", EffectType.NOISE_GATE, true, mapOf("threshold" to -55f, "release" to 50f)),
+                EffectSetting("fx_ng", EffectType.NOISE_GATE, true, mapOf("threshold" to -48f, "release" to 120f)),
                 EffectSetting("fx_boost", EffectType.BOOSTER, true, mapOf("gain" to 2.5f, "bright" to 1.0f)),
                 EffectSetting("fx_amp", EffectType.AMP_SIM, true, mapOf("model" to 0f, "gain" to 0.35f, "bass" to 0.55f, "mid" to 0.50f, "treble" to 0.65f, "presence" to 0.60f, "master" to 0.80f)),
                 EffectSetting("fx_cab", EffectType.CAB_SIM, true, mapOf("cab_type" to 0f, "mic_distance" to 0.3f)),
@@ -27,7 +27,7 @@ object PresetRepository {
             description = "Classic British stack breakup with punchy tube screamer drive",
             isFactory = true,
             effects = listOf(
-                EffectSetting("fx_ng", EffectType.NOISE_GATE, true, mapOf("threshold" to -50f, "release" to 40f)),
+                EffectSetting("fx_ng", EffectType.NOISE_GATE, true, mapOf("threshold" to -46f, "release" to 110f)),
                 EffectSetting("fx_ts", EffectType.OVERDRIVE, true, mapOf("drive" to 0.55f, "tone" to 0.60f, "level" to 0.70f)),
                 EffectSetting("fx_amp", EffectType.AMP_SIM, true, mapOf("model" to 1f, "gain" to 0.65f, "bass" to 0.50f, "mid" to 0.65f, "treble" to 0.60f, "presence" to 0.55f, "master" to 0.85f)),
                 EffectSetting("fx_cab", EffectType.CAB_SIM, true, mapOf("cab_type" to 1f, "mic_distance" to 0.2f)),
@@ -41,7 +41,7 @@ object PresetRepository {
             description = "Sustained melodic high-gain singing solo with stereo analog delay",
             isFactory = true,
             effects = listOf(
-                EffectSetting("fx_ng", EffectType.NOISE_GATE, true, mapOf("threshold" to -45f, "release" to 35f)),
+                EffectSetting("fx_ng", EffectType.NOISE_GATE, true, mapOf("threshold" to -43f, "release" to 100f)),
                 EffectSetting("fx_dist", EffectType.DISTORTION, true, mapOf("gain" to 0.65f, "tone" to 0.60f, "level" to 0.75f)),
                 EffectSetting("fx_amp", EffectType.AMP_SIM, true, mapOf("model" to 2f, "gain" to 0.80f, "bass" to 0.55f, "mid" to 0.70f, "treble" to 0.65f, "presence" to 0.70f, "master" to 0.90f)),
                 EffectSetting("fx_cab", EffectType.CAB_SIM, true, mapOf("cab_type" to 2f, "mic_distance" to 0.25f)),
@@ -56,7 +56,7 @@ object PresetRepository {
             description = "Ultra-tight noise gate, aggressive scooped modern distortion",
             isFactory = true,
             effects = listOf(
-                EffectSetting("fx_ng", EffectType.NOISE_GATE, true, mapOf("threshold" to -38f, "release" to 20f)),
+                EffectSetting("fx_ng", EffectType.NOISE_GATE, true, mapOf("threshold" to -40f, "release" to 100f)),
                 EffectSetting("fx_ts", EffectType.OVERDRIVE, true, mapOf("drive" to 0.20f, "tone" to 0.75f, "level" to 0.90f)),
                 EffectSetting("fx_amp", EffectType.AMP_SIM, true, mapOf("model" to 3f, "gain" to 0.88f, "bass" to 0.45f, "mid" to 0.40f, "treble" to 0.75f, "presence" to 0.75f, "master" to 0.85f)),
                 EffectSetting("fx_cab", EffectType.CAB_SIM, true, mapOf("cab_type" to 3f, "mic_distance" to 0.15f)),
@@ -69,7 +69,7 @@ object PresetRepository {
             description = "Ethereal tape flutter delay cascading into shimmering plate reverb",
             isFactory = true,
             effects = listOf(
-                EffectSetting("fx_ng", EffectType.NOISE_GATE, true, mapOf("threshold" to -60f, "release" to 70f)),
+                EffectSetting("fx_ng", EffectType.NOISE_GATE, true, mapOf("threshold" to -54f, "release" to 160f)),
                 EffectSetting("fx_amp", EffectType.AMP_SIM, true, mapOf("model" to 0f, "gain" to 0.25f, "bass" to 0.50f, "mid" to 0.55f, "treble" to 0.60f, "presence" to 0.50f, "master" to 0.80f)),
                 EffectSetting("fx_cab", EffectType.CAB_SIM, true, mapOf("cab_type" to 0f, "mic_distance" to 0.4f)),
                 EffectSetting("fx_chorus", EffectType.CHORUS, true, mapOf("rate" to 0.6f, "depth" to 0.70f, "mix" to 0.50f)),
