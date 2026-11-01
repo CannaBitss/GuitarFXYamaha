@@ -32,8 +32,7 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      # The setup action's default package list includes the obsolete "tools"
-      # SDK package, which sdkmanager no longer provides. Install only platform-tools.
+      # Avoid the obsolete "tools" package requested by setup-android defaults.
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
@@ -43,12 +42,23 @@ jobs:
         run: |
           sdkmanager --install "platforms;android-36" "build-tools;36.0.0" "platform-tools"
 
-      # This repository currently has no complete Gradle Wrapper, so install
-      # the pinned Gradle version and invoke it directly.
+      # This repository has no complete Gradle Wrapper, so install Gradle directly.
       - name: Set up Gradle 9.3.1
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.3.1'
+
+      # app/build.gradle.kts explicitly uses the repository-root debug.keystore.
+      # Generate the standard Android debug key on the ephemeral CI runner.
+      - name: Generate Android debug keystore
+        run: |
+          keytool -genkeypair -v \
+            -keystore debug.keystore \
+            -storepass android \
+            -alias androiddebugkey \
+            -keypass android \
+            -dname "CN=Android Debug,O=Android,C=US" \
+            -keyalg RSA -keysize 2048 -validity 10000
 
       - name: Run unit tests
         run: gradle --no-daemon --stacktrace :app:testDebugUnitTest
