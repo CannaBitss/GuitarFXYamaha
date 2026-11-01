@@ -12,7 +12,7 @@ class IrigConditioner(private val sampleRate: Float) {
     var isEnabled: Boolean = true
     var inputGain: Float = 1.4f            // +3 dB default boost for passive guitar pickups
     var antiFeedbackEnabled: Boolean = false // Notch filters at typical TRRS squeal frequencies
-    var humReductionEnabled: Boolean = true // Sub-bass 75Hz rumble & 50/60Hz hum cut
+    var humReductionEnabled: Boolean = true // Sub-bass 55Hz rumble & 50/60Hz hum cut
 
     private val rumbleHpf = BiquadFilter()
     private val mainsHum50 = BiquadFilter()
@@ -24,9 +24,9 @@ class IrigConditioner(private val sampleRate: Float) {
     private val highCutSquealFilter = BiquadFilter()
 
     init {
-        // High-pass filter at 75Hz to kill ground hum & handling thumps
+        // Gentle 55Hz high-pass to reduce sub-bass rumble while retaining low guitar notes
         rumbleHpf.setHighPass(sampleRate, 55.0f, 0.707f)
-        // Narrow 50 Hz mains notch and its first harmonic; avoids the broad 3-5 kHz cuts.
+        // Narrow 50/60 Hz mains notches and their first harmonics; preserve guitar presence.
         mainsHum50.setPeaking(sampleRate, 50.0f, -9.0f, 10.0f)
         mainsHum60.setPeaking(sampleRate, 60.0f, -9.0f, 10.0f)
         mainsHum100.setPeaking(sampleRate, 100.0f, -6.0f, 8.0f)
@@ -36,7 +36,7 @@ class IrigConditioner(private val sampleRate: Float) {
         antiFeedbackNotch1.setPeaking(sampleRate, 3200.0f, -12.0f, 2.5f)
         antiFeedbackNotch2.setPeaking(sampleRate, 4600.0f, -10.0f, 2.0f)
 
-        // Smooth high-cut at 6200Hz to prevent acoustic/electrical oscillation
+        // Optional smooth high-cut for severe acoustic/electrical oscillation
         highCutSquealFilter.setLowPass(sampleRate, 8500.0f, 0.707f)
     }
 
