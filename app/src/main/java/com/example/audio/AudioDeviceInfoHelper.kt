@@ -105,10 +105,10 @@ class AudioDeviceInfoHelper(
 
     fun getHardwareSpecs(): HardwareAudioSpecs {
         return try {
-            val sampleRateStr = audioManager?.getProperty(AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE)
             val framesStr = audioManager?.getProperty(AudioManager.PROPERTY_OUTPUT_FRAMES_PER_BUFFER)
 
-            val sampleRate = sampleRateStr?.toIntOrNull()?.takeIf { it in 8000..192000 } ?: 48000
+            // AudioEngine and every DSP block run at a fixed 48 kHz.
+            val sampleRate = 48000
             val framesPerBuffer = framesStr?.toIntOrNull()?.takeIf { it in 16..4096 } ?: 192
 
             val latencyMs = (framesPerBuffer.toFloat() / sampleRate.toFloat()) * 1000.0f * 2.0f
